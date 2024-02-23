@@ -1,8 +1,8 @@
 #![allow(non_snake_case)]
-pub use std::num::Wrapping;
 use num_format::{Locale, ToFormattedString};
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha8Rng;
+pub use std::num::Wrapping;
 
 const HELP: &str = "\
 Rust performance comparitor
@@ -125,7 +125,7 @@ pub fn fill_vecs(args: &AppArgs) -> (Vec<u32>, Vec<u32>, Vec<bool>) {
         bools[i] = comp_fn(i, &mut rng, ratio_val);
     }
 
-    print_how_many_true(&bools, &args);
+    print_how_many_true(&bools, args);
 
     (v1, v2, bools)
 }
