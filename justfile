@@ -2,18 +2,26 @@ BIN := "target/release/rust-perf-comp"
 BRANCH_BIN := "target/release/examples/branch"
 BRANCHLESS_BIN := "target/release/examples/branchless"
 
-COMP_RATIO :="0"
-N :="10000000"
-SEED :="0"
-REPEAT :="1"
+# Default values for the parameters.
+
+# Ratio of true values in the vector of booleans. 0-100 %.
+COMP_RATIO := "100"
+# Number of elements in the vectors.
+N := "10000000"
+# Seed for the random number generator.
+SEED := "0"
+# Number of times to run the binary with perf.
+REPEAT := "1"
+# FALSE: Use a random number generator to initialize the vector of booleans.
+# TRUE: Use a modulo operation to initialize the vector of booleans, creating a deterministic pattern.
 NO_RND_CMP := "FALSE"
 
-build:
+@build:
     cargo build --release
     cargo build --examples --release
 
-# Run perf on the example, specifying ratio (0-255) for the branch, size of vectors, and seed.
-perf-branch:
+# Run perf on the branching example.
+perf-branch: build
     #!/usr/bin/env bash
     declare no_rnd_cmp=""
     if [ "{{ NO_RND_CMP }}" != "FALSE" ]; then
@@ -27,11 +35,11 @@ perf-branch:
         --ratio {{ COMP_RATIO }} \
         ${no_rnd_cmp}
 
-# Run perf on the example, specifying ratio (0-255) for the branch, size of vectors, and seed.
-perf-branchless:
+# Run perf on the branchless example.
+perf-branchless: build
     #!/usr/bin/env bash
     declare no_rnd_cmp=""
-    if [ "{{ NO_RND_CMP }}" != "0" ]; then
+    if [ "{{ NO_RND_CMP }}" != "FALSE" ]; then
         no_rnd_cmp="--no-rnd-cmp"
     fi
     perf stat --repeat {{ REPEAT }} \
