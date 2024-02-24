@@ -1,6 +1,29 @@
 # Rust performance comparison
 
+- [Rust performance comparison](#rust-performance-comparison)
+  - [Example using `perf stat`](#example-using-perf-stat)
+  - [Instructions/Branch misses/Duration - Branching vs. Branchless](#instructionsbranch-missesduration---branching-vs-branchless)
+    - [CPU instructions vs. Ratio of True/False in the vector of bools, randomly generated.](#cpu-instructions-vs-ratio-of-truefalse-in-the-vector-of-bools-randomly-generated)
+    - [Duration and branch misses - Branching vs. Branchless](#duration-and-branch-misses---branching-vs-branchless)
+    - [Branching code](#branching-code)
+    - [Branchless code](#branchless-code)
+
+
 ## Example using `perf stat`
+
+## Instructions/Branch misses/Duration - Branching vs. Branchless
+
+>N=10,000,000
+>5 runs per interval
+
+### CPU instructions vs. Ratio of True/False in the vector of bools, randomly generated.
+
+![cpu-instructions-plot](cpu_instruction.svg)
+
+### Duration and branch misses - Branching vs. Branchless
+
+![time-branch-miss-plot](time_branch_miss.svg)
+
 
 ### Branching code
 ```shell

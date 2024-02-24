@@ -4,6 +4,9 @@ use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha8Rng;
 pub use std::num::Wrapping;
 
+pub mod config;
+pub mod plot_perf_stats;
+
 const HELP: &str = "\
 Rust performance comparitor
 
