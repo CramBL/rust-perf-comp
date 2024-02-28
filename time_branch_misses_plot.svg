@@ -1,4 +1,5 @@
 <svg width="1024" height="768" viewBox="0 0 1024 768" xmlns="http://www.w3.org/2000/svg">
+<rect x="0" y="0" width="1024" height="768" opacity="1" fill="#FFFFFF" stroke="none"/>
 <text x="512" y="5" dy="0.76em" text-anchor="middle" font-family="Arial" font-size="24.193548387096776" opacity="1" fill="#000000">
 Duration vs. Branch Misses
 </text>

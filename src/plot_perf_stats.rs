@@ -575,7 +575,7 @@ fn time_branch_misses_plot_view(
 
     let root_drawing_area = SVGBackend::new(save_to, (1024, 768)).into_drawing_area();
 
-    //root_drawing_area.fill(&WHITE).unwrap();
+    root_drawing_area.fill(&WHITE).unwrap();
     
     let mut chart = ChartBuilder::on(&root_drawing_area)
         .caption("Duration vs. Branch Misses", ("Arial", 30))
@@ -781,7 +781,7 @@ fn cpu_instructions_plot_view(
 
     let root_drawing_area = SVGBackend::new(save_to, (1024, 768)).into_drawing_area();
 
-    //root_drawing_area.fill(&WHITE).unwrap();
+    root_drawing_area.fill(&WHITE).unwrap();
 
     let mut chart = ChartBuilder::on(&root_drawing_area)
         .caption("CPU Instructions vs. True/False ratio", ("Arial", 30))
