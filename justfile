@@ -102,6 +102,7 @@ line-over-x XVALS JSON_DIR BR_PRE BL_PRE SAVE_TO PLOT_TYPE:
         --branchless-prefix {{ BL_PRE }} \
         --save-to {{ SAVE_TO }} \
         --plot-type {{ PLOT_TYPE }}
+    #firefox cpu_instructions_plot.svg
     firefox {{ SAVE_TO }}
 
 
@@ -114,5 +115,5 @@ full-run SAVE_TO:
         just COMP_RATIO=${ratio} REPEAT=${repeat} perf-stat-record-branch "json_dir/branch${ratio}.json"
         just COMP_RATIO=${ratio} REPEAT=${repeat} perf-stat-record-branchless "json_dir/branchless${ratio}.json"
     done
-    just line-over-x "${ratios}" json_dir branch branchless "{{ SAVE_TO }}/cpu_instruction.svg" cpu-instructions
-    just line-over-x "${ratios}" json_dir branch branchless "{{ SAVE_TO }}/time_branch_miss.svg" time-branch-misses
+    just line-over-x "${ratios}" json_dir branch branchless "{{ SAVE_TO }}/cpu_instructions_plot.svg" cpu-instructions
+    just line-over-x "${ratios}" json_dir branch branchless "{{ SAVE_TO }}/time_branch_misses_plot.svg" time-branch-misses

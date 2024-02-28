@@ -18,11 +18,11 @@
 
 ### CPU instructions vs. Ratio of True/False in the vector of bools, randomly generated.
 
-![cpu-instructions-plot](cpu_instruction.svg)
+![cpu-instructions-plot](cpu_instructions_plot.svg)
 
 ### Duration and branch misses - Branching vs. Branchless
 
-![time-branch-miss-plot](time_branch_miss.svg)
+![time-branch-miss-plot](time_branch_misses_plot.svg)
 
 
 ### Branching code

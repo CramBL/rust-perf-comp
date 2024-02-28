@@ -1,5 +1,5 @@
-use std::num::Wrapping;
 use rand::{Rng, SeedableRng};
+use std::num::Wrapping;
 
 const N: usize = 10_000_000;
 

@@ -2,11 +2,13 @@ use plotlib::{
     page::Page,
     repr::Plot,
     style::{LineJoin, LineStyle, PointMarker, PointStyle},
-    view::ContinuousView,
 };
+use plotters::{element::*, style::full_palette::PURPLE};
+use plotters::{element::ComposedElement, prelude::*};
 use serde::{Deserialize, Serialize};
 use std::{
     error::Error,
+    ffi::OsStr,
     fmt::{write, Display},
     path::PathBuf,
 };
@@ -19,24 +21,110 @@ pub enum Cpu {
     Core,
     Atom,
 }
+
+pub trait CpuPlotStyle {
+    fn cpu_total_style() -> ShapeStyle;
+    fn cpu_core_style() -> ShapeStyle;
+    fn cpu_atom_style() -> ShapeStyle;
+    fn branch_misses_style() -> ShapeStyle;
+
+    fn cpu_total_legend_style() -> impl Fn((i32, i32)) -> PathElement<(i32, i32)> {
+        |(x, y)| PathElement::new(vec![(x, y), (x + 20, y)], Self::cpu_total_style())
+    }
+    fn cpu_core_legend_style() -> impl Fn((i32, i32)) -> PathElement<(i32, i32)> {
+        |(x, y)| PathElement::new(vec![(x, y), (x + 20, y)], Self::cpu_core_style())
+    }
+    fn cpu_atom_legend_style() -> impl Fn((i32, i32)) -> PathElement<(i32, i32)> {
+        |(x, y)| PathElement::new(vec![(x, y), (x + 20, y)], Self::cpu_atom_style())
+    }
+
+    fn branch_misses_legend_style() -> impl Fn((i32, i32)) -> PathElement<(i32, i32)> {
+        |(x, y)| PathElement::new(vec![(x, y), (x + 20, y)], Self::branch_misses_style())
+    }
+
+    fn line_points_circle() -> impl Fn(
+        (f64, f64),
+        i32,
+        ShapeStyle,
+    ) -> ComposedElement<
+        (f64, f64),
+        SVGBackend<'static>,
+        Circle<(i32, i32), i32>,
+        Text<'static, (i32, i32), String>,
+    > {
+        |(x, y), s: i32, st: ShapeStyle| {
+            // We want to construct a composed element on-the-fly
+            EmptyElement::<(f64, f64), SVGBackend>::at((x, y))
+            // At this point, the new pixel coordinate is established    
+            + Circle::new((0,0),s,st.filled()) 
+            + Text::new(format!("{y:.1}"), (10, 0), ("sans-serif", 10).into_font())
+        }
+    }
+
+    fn line_points_triangle() -> impl Fn(
+        (f64, f64),
+        i32,
+        ShapeStyle,
+    ) -> ComposedElement<
+        (f64, f64),
+        SVGBackend<'static>,
+        TriangleMarker<(i32, i32), i32>,
+        Text<'static, (i32, i32), String>,
+    > {
+        |(x, y), s: i32, st: ShapeStyle| {
+            // We want to construct a composed element on-the-fly
+            EmptyElement::<(f64, f64), SVGBackend>::at((x, y))
+            // At this point, the new pixel coordinate is established    
+            + TriangleMarker::new((0,0), s, st.filled()) 
+            + Text::new(format!("{y:.1}"), (10, 0), ("sans-serif", 10).into_font())
+        }
+    }
+}
 pub struct BranchingStyle;
+
+impl CpuPlotStyle for BranchingStyle {
+    fn cpu_total_style() -> ShapeStyle {
+        Self::TOTAL_RGB.stroke_width(3)
+    }
+
+    fn cpu_core_style() -> ShapeStyle {
+        Self::CORE_RGB.mix(0.8).stroke_width(2)
+    }
+
+    fn cpu_atom_style() -> ShapeStyle {
+        Self::ATOM_RGB.mix(0.5).stroke_width(1)
+    }
+
+    fn branch_misses_style() -> ShapeStyle {
+        Self::BRANCH_MISSES_RGB.stroke_width(2)
+    }
+}
+
 impl BranchingStyle {
     pub const TOTAL_LEGEND: &'static str = "Branching TOTAL";
     pub const TOTAL_COLOR: &'static str = "#e59000";
+    pub const TOTAL_RGB: RGBColor = RGBColor(0xe5, 0x90, 0);
     pub const TOTAL_POINT_SIZE: f32 = 4.;
     pub const TOTAL_LINE_WIDTH: f32 = 3.;
 
     pub const CORE_LEGEND: &'static str = "Branching CORE";
     pub const CORE_COLOR: &'static str = "#e5a73e";
+    pub const CORE_RGB: RGBColor = RGBColor(0xe5, 0xa7, 0x3e);
     pub const CORE_POINT_SIZE: f32 = 2.5;
     pub const CORE_LINE_WIDTH: f32 = 1.5;
 
     pub const ATOM_LEGEND: &'static str = "Branching ATOM";
     pub const ATOM_COLOR: &'static str = "#e4ca9d";
+    pub const ATOM_RGB: RGBColor = RGBColor(0xe4, 0xca, 0x9d);
     pub const ATOM_POINT_SIZE: f32 = 2.;
     pub const ATOM_LINE_WIDTH: f32 = 1.;
 
     pub const BRANCH_MISSES_COLOR: &'static str = "#d14419";
+    pub const BRANCH_MISSES_RGB: RGBColor = RGBColor(0xd1, 0x44, 0x19);
+
+    pub fn something() {
+        println!("test");
+    }
 
     pub fn color_cpu(cpu: Cpu) -> &'static str {
         match cpu {
@@ -123,23 +211,47 @@ impl BranchingStyle {
 }
 
 pub struct BranchlessStyle;
+
+impl CpuPlotStyle for BranchlessStyle {
+    fn cpu_total_style() -> ShapeStyle {
+        Self::TOTAL_RGB.stroke_width(3)
+    }
+
+    fn cpu_core_style() -> ShapeStyle {
+        Self::CORE_RGB.mix(0.8).stroke_width(2)
+    }
+
+    fn cpu_atom_style() -> ShapeStyle {
+        Self::ATOM_RGB.mix(0.5).stroke_width(1)
+    }
+
+    fn branch_misses_style() -> ShapeStyle {
+        Self::BRANCH_MISSES_RGB.stroke_width(2)
+    }
+}
+
 impl BranchlessStyle {
     pub const TOTAL_LEGEND: &'static str = "Branchless TOTAL";
     pub const TOTAL_COLOR: &'static str = "#0369c5";
+    pub const TOTAL_RGB: RGBColor = RGBColor(0x03, 0x69, 0xc5);
     pub const TOTAL_POINT_SIZE: f32 = 4.;
     pub const TOTAL_LINE_WIDTH: f32 = 3.;
 
     pub const CORE_LEGEND: &'static str = "Branchless CORE";
     pub const CORE_COLOR: &'static str = "#1691ff";
+    pub const CORE_RGB: RGBColor = RGBColor(0x16, 0x91, 0xff);
     pub const CORE_POINT_SIZE: f32 = 2.5;
     pub const CORE_LINE_WIDTH: f32 = 1.5;
 
     pub const ATOM_LEGEND: &'static str = "Branchless ATOM";
     pub const ATOM_COLOR: &'static str = "#88bae7";
+    pub const ATOM_RGB: RGBColor = RGBColor(0x88, 0xba, 0xe7);
+
     pub const ATOM_POINT_SIZE: f32 = 2.;
     pub const ATOM_LINE_WIDTH: f32 = 1.;
 
     pub const BRANCH_MISSES_COLOR: &'static str = "#5d00d1";
+    pub const BRANCH_MISSES_RGB: RGBColor = RGBColor(0x5d, 0x00, 0xd1);
 
     pub fn color_cpu(cpu: Cpu) -> &'static str {
         match cpu {
@@ -415,7 +527,7 @@ pub fn plot_vs_x(
     x_vals: Vec<u64>,
     branching_files: Vec<PathBuf>,
     branchless_files: Vec<PathBuf>,
-    save_to: PathBuf,
+    save_to: &'static OsStr,
     plot_type: PlotType,
 ) -> Result<(), Box<dyn Error>> {
     let ratio_vals: Vec<f64> = x_vals.into_iter().map(|x| x as f64).collect();
@@ -425,24 +537,13 @@ pub fn plot_vs_x(
 
     match plot_type {
         PlotType::CpuInstructions => {
-            let v = cpu_instructions_plot_view(ratio_vals, &br_perf_stats, &bl_perf_stats)?;
-            Page::single(&v).save(save_to)?;
+            cpu_instructions_plot_view(save_to, ratio_vals, &br_perf_stats, &bl_perf_stats)?;
         }
         PlotType::TimeBranchMisses => {
-            let v = time_branch_misses_plot_view(ratio_vals, &br_perf_stats, &bl_perf_stats)?;
-            Page::single(&v).save(save_to)?;
+            time_branch_misses_plot_view(save_to, ratio_vals, &br_perf_stats, &bl_perf_stats)?;
         }
         PlotType::Merged => {
-            todo!("This doesnt work, should switch to using plotters-rs");
-            let cpu_instructions_v =
-                cpu_instructions_plot_view(ratio_vals.clone(), &br_perf_stats, &bl_perf_stats)?;
-            let time_branch_misses_v =
-                time_branch_misses_plot_view(ratio_vals, &br_perf_stats, &bl_perf_stats)?;
-            Page::empty()
-                .dimensions(2, 1)
-                .add_plot(&cpu_instructions_v)
-                .add_plot(&time_branch_misses_v)
-                .save(save_to)?;
+            todo!("");
         }
     }
 
@@ -450,10 +551,11 @@ pub fn plot_vs_x(
 }
 
 fn time_branch_misses_plot_view(
+    save_to: &'static OsStr,
     ratio_vals: Vec<f64>,
     br_perf_stats: &[Vec<PerfStatRecord>],
     bl_perf_stats: &[Vec<PerfStatRecord>],
-) -> Result<ContinuousView, Box<dyn Error>> {
+) -> Result<(), Box<dyn Error>> {
     let (br_durations_x, bl_durations_x) =
         branching_branchless_durations_over_x(ratio_vals.clone(), br_perf_stats, bl_perf_stats)?;
 
@@ -471,22 +573,91 @@ fn time_branch_misses_plot_view(
         .zip(bl_frac_misses_core)
         .collect();
 
-    let l_br_branch_misses = BranchingStyle::line_plot_branch_misses(br_frac_misses_x);
-    let l_bl_branch_misses = BranchlessStyle::line_plot_branch_misses(bl_frac_misses_x);
+    let root_drawing_area = SVGBackend::new(save_to, (1024, 768)).into_drawing_area();
 
-    let l_br_core_duration = BranchingStyle::line_plot_duration_s(br_durations_x);
-    let l_bl_core_duration = BranchlessStyle::line_plot_duration_s(bl_durations_x);
+    //root_drawing_area.fill(&WHITE).unwrap();
+    
+    let mut chart = ChartBuilder::on(&root_drawing_area)
+        .caption("Duration vs. Branch Misses", ("Arial", 30))
+        .set_label_area_size(LabelAreaPosition::Left, 40)
+        .set_label_area_size(LabelAreaPosition::Bottom, 40)
+        .build_cartesian_2d(0.0..103.0, 0.0..5.0)?;
 
-    let cpu_instructions_plot = ContinuousView::new()
-        .add(l_br_branch_misses)
-        .add(l_bl_branch_misses)
-        .add(l_br_core_duration)
-        .add(l_bl_core_duration)
-        .x_label("Ratio [True/False]")
-        .y_label("Branch misses / Duration [s]")
-        .y_range(0.0, 3.5)
-        .y_max_ticks(16);
-    Ok(cpu_instructions_plot)
+    chart
+        .configure_mesh()
+        .x_labels(10)
+        .y_desc("Branch misses [%] / Duration [s]")
+        .y_labels(10)
+        .x_desc("True/False ratio [%]")
+        .draw()?;
+
+        chart
+        .draw_series(LineSeries::new(
+            br_frac_misses_x.clone(),
+            RED,
+        ))?
+        .label("Branching: Branch Misses")
+        .legend(BranchingStyle::branch_misses_legend_style());
+        chart.draw_series(PointSeries::of_element(
+            br_frac_misses_x.clone(),
+            3,
+            RED,
+            &BranchingStyle::line_points_circle(),
+        ))?;
+
+        chart
+        .draw_series(LineSeries::new(
+            bl_frac_misses_x.clone(),
+            PURPLE,
+        ))?
+        .label("Branchless: Branch Misses")
+        .legend(BranchingStyle::branch_misses_legend_style());
+        chart.draw_series(PointSeries::of_element(
+            bl_frac_misses_x.clone(),
+            3,
+            PURPLE,
+            &BranchingStyle::line_points_triangle(),
+        ))?;
+
+
+        chart
+        .draw_series(LineSeries::new(
+            br_durations_x.clone(),
+            BranchingStyle::cpu_total_style(),
+        ))?
+        .label("Branching: Duration")
+        .legend(BranchingStyle::cpu_total_legend_style());
+        chart.draw_series(PointSeries::of_element(
+            br_durations_x.clone(),
+            0,
+            BranchingStyle::cpu_total_style(),
+            &BranchingStyle::line_points_circle(),
+        ))?;
+
+
+        chart
+        .draw_series(LineSeries::new(
+            bl_durations_x.clone(),
+            BranchlessStyle::cpu_total_style(),
+        ))?
+        .label("Branchless: Duration")
+        .legend(BranchlessStyle::cpu_total_legend_style());
+        chart.draw_series(PointSeries::of_element(
+            bl_durations_x.clone(),
+            0,
+            BranchlessStyle::cpu_total_style(),
+            &BranchingStyle::line_points_circle(),
+        ))?;
+
+        chart
+        .configure_series_labels()
+        .position(SeriesLabelPosition::MiddleRight)
+        .border_style(BLACK)
+        .background_style(WHITE.mix(0.8))
+        .draw()?;
+
+
+    Ok(())
 }
 
 fn frac_branch_misses_core_from_perf_stats(
@@ -552,10 +723,11 @@ fn branching_branchless_durations_over_x(
 }
 
 fn cpu_instructions_plot_view(
+    save_to: &'static OsStr,
     ratio_vals: Vec<f64>,
     br_perf_stats: &[Vec<PerfStatRecord>],
     bl_perf_stats: &[Vec<PerfStatRecord>],
-) -> Result<ContinuousView, Box<dyn Error>> {
+) -> Result<(), Box<dyn Error>> {
     let (br_core_vals, br_min_mag, br_core_max) =
         vals_from_perf_stats(br_perf_stats, "cpu_core/instructions")?;
     let (bl_core_vals, bl_min_mag, bl_core_max) =
@@ -587,9 +759,10 @@ fn cpu_instructions_plot_view(
         .zip(br_total_scaled)
         .collect();
     let br_core_x: Vec<(f64, f64)> = ratio_vals.clone().into_iter().zip(br_core_scaled).collect();
-    let mut br_atom_x: Vec<(f64, f64)> =
-        ratio_vals.clone().into_iter().zip(br_atom_scaled).collect();
-    br_atom_x.retain(|(_, a)| *a != 0.0);
+    let br_atom_x: Vec<(f64, f64)> = ratio_vals.clone().into_iter().zip(br_atom_scaled).collect();
+
+    // What to do about perf stat not counting cycles from the ATOM cpus?
+    // br_atom_x.retain(|(_, a)| *a != 0.0);
 
     let bl_total_scaled: Vec<f64> = bl_core_scaled
         .clone()
@@ -602,28 +775,133 @@ fn cpu_instructions_plot_view(
         .zip(bl_total_scaled)
         .collect();
     let bl_core_x: Vec<(f64, f64)> = ratio_vals.clone().into_iter().zip(bl_core_scaled).collect();
-    let mut bl_atom_x: Vec<(f64, f64)> = ratio_vals.into_iter().zip(bl_atom_scaled).collect();
-    bl_atom_x.retain(|(_, b)| *b != 0.0);
+    let bl_atom_x: Vec<(f64, f64)> = ratio_vals.into_iter().zip(bl_atom_scaled).collect();
+    // What to do about perf stat not counting cycles from the ATOM cpus?
+    // bl_atom_x.retain(|(_, b)| *b != 0.0);
 
-    let l_total_branching = BranchingStyle::line_plot_cpu(br_total_x, Cpu::Total);
-    let l_core_branching = BranchingStyle::line_plot_cpu(br_core_x, Cpu::Core);
-    let l_atom_branching = BranchingStyle::line_plot_cpu(br_atom_x, Cpu::Atom);
+    let root_drawing_area = SVGBackend::new(save_to, (1024, 768)).into_drawing_area();
 
-    let l_total_branchless = BranchlessStyle::line_plot_cpu(bl_total_x, Cpu::Total);
-    let l_core_branchless = BranchlessStyle::line_plot_cpu(bl_core_x, Cpu::Core);
-    let l_atom_branchless = BranchlessStyle::line_plot_cpu(bl_atom_x, Cpu::Atom);
+    //root_drawing_area.fill(&WHITE).unwrap();
 
-    let cpu_instructions_plot = ContinuousView::new()
-        .add(l_total_branching)
-        .add(l_core_branching)
-        .add(l_atom_branching)
-        .add(l_total_branchless)
-        .add(l_core_branchless)
-        .add(l_atom_branchless)
-        .x_label("Ratio [True/False]")
-        .y_label(format!("Instructions {min_magnitude}"))
-        .y_range(0.0, max_scaled)
-        .y_max_ticks(20);
+    let mut chart = ChartBuilder::on(&root_drawing_area)
+        .caption("CPU Instructions vs. True/False ratio", ("Arial", 30))
+        .set_label_area_size(LabelAreaPosition::Left, 40)
+        .set_label_area_size(LabelAreaPosition::Bottom, 40)
+        .build_cartesian_2d(0.0..103.0, 0.0..max_scaled)?;
 
-    Ok(cpu_instructions_plot)
+    chart
+        .configure_mesh()
+        .x_labels(10)
+        .y_desc(format!(
+            "CPU Instructions {unit}",
+            unit = match min_magnitude {
+                Magnitude::E3 => "10 ^ 3".to_string(),
+                Magnitude::E6 => "10 ^ 6".to_string(),
+                Magnitude::E9 => "10 ^ 9".to_string(),
+                Magnitude::E12 => "10 ^ 12".to_string(),
+                Magnitude::E15
+                | Magnitude::E18
+                | Magnitude::E21
+                | Magnitude::E24
+                | Magnitude::E27 => format!("{min_magnitude}"),
+                Magnitude::Eminus9 | Magnitude::Eminus6 | Magnitude::Eminus3 | Magnitude::E0 =>
+                    String::new(),
+            }
+        ))
+        .y_labels(10)
+        .x_desc("True/False ratio [%]")
+        .draw()?;
+
+    chart
+        .draw_series(LineSeries::new(
+            br_total_x.clone(),
+            BranchingStyle::cpu_total_style(),
+        ))?
+        .label("Branching CPU Total")
+        .legend(BranchingStyle::cpu_total_legend_style());
+    chart.draw_series(PointSeries::of_element(
+        br_total_x.clone(),
+        10,
+        BranchingStyle::cpu_total_style(),
+        &BranchingStyle::line_points_circle(),
+    ))?;
+
+    chart
+        .draw_series(LineSeries::new(
+            br_core_x.clone(),
+            BranchingStyle::cpu_core_style(),
+        ))?
+        .label("Branching CPU Core")
+        .legend(BranchingStyle::cpu_core_legend_style());
+    chart.draw_series(PointSeries::of_element(
+        br_core_x.clone(),
+        4,
+        BranchingStyle::cpu_core_style(),
+        &BranchingStyle::line_points_circle(),
+    ))?;
+
+    chart
+        .draw_series(LineSeries::new(
+            br_atom_x.clone(),
+            BranchingStyle::cpu_atom_style(),
+        ))?
+        .label("Branching CPU Atom")
+        .legend(BranchingStyle::cpu_atom_legend_style());
+    chart.draw_series(PointSeries::of_element(
+        br_atom_x.clone(),
+        4,
+        BranchingStyle::cpu_atom_style(),
+        &BranchingStyle::line_points_circle(),
+    ))?;
+
+    chart
+        .draw_series(LineSeries::new(
+            bl_total_x.clone(),
+            BranchlessStyle::cpu_total_style(),
+        ))?
+        .label("Branchless CPU Total")
+        .legend(BranchlessStyle::cpu_total_legend_style());
+    chart.draw_series(PointSeries::of_element(
+        bl_total_x.into_iter(),
+        12,
+        BranchlessStyle::cpu_total_style(),
+        &BranchlessStyle::line_points_triangle(),
+    ))?;
+
+    chart
+        .draw_series(LineSeries::new(
+            bl_core_x.clone(),
+            BranchlessStyle::cpu_core_style(),
+        ))?
+        .label("Branchless CPU Core")
+        .legend(BranchlessStyle::cpu_core_legend_style());
+    chart.draw_series(PointSeries::of_element(
+        bl_core_x.into_iter(),
+        5,
+        BranchlessStyle::cpu_core_style(),
+        &BranchlessStyle::line_points_triangle(),
+    ))?;
+
+    chart
+        .draw_series(LineSeries::new(
+            bl_atom_x.clone(),
+            BranchlessStyle::cpu_atom_style(),
+        ))?
+        .label("Branchless CPU Atom")
+        .legend(BranchlessStyle::cpu_atom_legend_style());
+    chart.draw_series(PointSeries::of_element(
+        bl_atom_x.into_iter(),
+        5,
+        BranchlessStyle::cpu_atom_style(),
+        &BranchlessStyle::line_points_triangle(),
+    ))?;
+
+    chart
+        .configure_series_labels()
+        .position(SeriesLabelPosition::UpperRight)
+        .border_style(BLACK)
+        .background_style(WHITE.mix(0.8))
+        .draw()?;
+
+    Ok(())
 }

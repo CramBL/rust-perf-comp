@@ -4,7 +4,22 @@ use rust_perf_comp::{
     config::{Args, Command},
     plot_perf_stats::{self, plot_vs_x},
 };
-use std::{error::Error, path::PathBuf};
+use std::{
+    error::Error,
+    ffi::{OsStr, OsString},
+    path::PathBuf,
+    sync::OnceLock,
+};
+
+static SAVE_TO: OnceLock<OsString> = OnceLock::new();
+
+fn set_save_to(save_to: OsString) -> Result<(), OsString> {
+    SAVE_TO.set(save_to)
+}
+
+pub fn get_save_to() -> &'static OsStr {
+    SAVE_TO.get().unwrap()
+}
 
 fn main() -> Result<(), Box<dyn Error>> {
     let args = Args::parse();
@@ -42,11 +57,14 @@ fn main() -> Result<(), Box<dyn Error>> {
                 assert!(b.exists(), "{b:?} Does not exist - Expects {json_dir:?} to contain two files per value in x_vals, e.g. {branching_prefix}{x}.json & {branchless_prefix}{x}.json");
                 branchless_files.push(b);
             }
+
+            set_save_to(save_to.into_os_string()).unwrap();
+
             plot_vs_x(
                 x_vals,
                 branching_files,
                 branchless_files,
-                save_to,
+                get_save_to(),
                 plot_type,
             )?;
         }
